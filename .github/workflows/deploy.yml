@@ -1,0 +1,21 @@
+name: Deploy application
+on: {push: {branches: [main]}, workflow_dispatch: {}}
+permissions: {id-token: write, contents: read}
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: aws-actions/configure-aws-credentials@v6.2.4
+        with:
+          aws-region: us-east-1
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+      - uses: aws-actions/amazon-ecr-login@v2.1.7
+      - name: Build and push the east image
+        env:
+          IMAGE_URI: ${{ vars.ECR_EAST_URI }}:${{ github.sha }}
+        run: |
+          docker build --tag $IMAGE_URI .
+          docker push $IMAGE_URI
+      - uses: aws-actions/amazon-ecs-deploy-express-service@v1.2.2
+        with: {service-name: multi-region-app-east, image: '${{ vars.ECR_EAST_URI }}:${{ github.sha }}', execution-role-arn: '${{ vars.ECS_EXECUTION_ROLE_ARN }}', infrastructure-role-arn: '${{ vars.ECS_INFRASTRUCTURE_ROLE_ARN }}', container-port: 8080, environment-variables: '[{"name":"AWS_REGION","value":"us-east-1"},{"name":"APP_VERSION","value":"${{ github.sha }}"}]', cpu: '256', memory: '512', min-task-count: 1, max-task-count: 2, health-check-path: /health}
