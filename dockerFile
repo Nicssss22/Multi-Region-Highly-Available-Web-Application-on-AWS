@@ -1,0 +1,12 @@
+FROM node:24.20.0-bookworm
+WORKDIR /app
+
+# Install the pinned production dependency.
+COPY package*.json ./
+RUN npm install --omit=dev
+
+# Copy the server and expose its runtime port.
+COPY server.js ./
+ENV PORT=8080
+EXPOSE 8080
+CMD ["npm", "start"]

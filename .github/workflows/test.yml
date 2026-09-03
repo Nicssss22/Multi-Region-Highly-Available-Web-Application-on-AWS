@@ -1,0 +1,17 @@
+name: Test container
+on: workflow_dispatch
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    steps:
+      # Read the repository files on the runner.
+      - uses: actions/checkout@v7.0.1
+      # Build and start the app container.
+      - run: docker build --tag multi-region-app:test .
+      - run: docker run --detach --name app-test --publish 8080:8080 --env AWS_REGION=local --env APP_VERSION=test multi-region-app:test
+      # Verify both HTTP routes.
+      - run: |
+          sleep 5
+          curl --fail http://localhost:8080/health
+          curl --fail http://localhost:8080/
